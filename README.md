@@ -1,32 +1,29 @@
-# React + TypeScript + Vite
+# PLAY
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+PLAY is a venue and activity booking app built with React, Vite and Supabase.
 
-Currently, two official plugins are available:
+## Booking model
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Every independently bookable physical unit is stored as one row in `resources`.
+For example, a venue with three dartboards has three resources (Darts 1, Darts 2,
+Darts 3). A bowling center with six lanes has six separate resources. Bookings
+always point to one resource, never just to an activity or venue.
 
-## React Compiler
+Instant bookings are created through the PostgreSQL `create_booking` RPC.
+The database validates the resource, duration and capacity, calculates the
+price, and uses a GiST exclusion constraint to prevent overlapping active
+bookings on the same resource.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Supabase setup
 
-## Expanding the Oxlint configuration
+1. Open the Supabase SQL Editor for the PLAY project.
+2. Apply the SQL migration in `supabase/migrations/20261117000100_booking_core.sql`.
+3. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to the local/StackBlitz
+   environment. Never put a Supabase service-role key in the frontend.
+4. The frontend booking and partner data helpers are in
+   `src/lib/bookingService.js`.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+The migration creates the core schema, row-level security policies, partner
+membership roles, venue onboarding RPC, booking audit events, and the atomic
+instant-booking RPC. It is committed to the repository; it is not automatically
+applied to the Supabase database.
