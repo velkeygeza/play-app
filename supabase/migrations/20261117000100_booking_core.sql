@@ -3,6 +3,7 @@
 -- Apply this migration to the Supabase project before wiring the app to live data.
 
 create extension if not exists btree_gist;
+create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -237,6 +238,44 @@ as $$
   );
 $$;
 
+-- Partner onboarding: create a venue and make the creator its owner in one transaction.
+create or replace function public.create_venue(
+  p_name text,
+  p_slug text,
+  p_city text,
+  p_address text default null,
+  p_description text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $
+declare
+  v_venue_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Bejelentkezés szükséges a helyszín létrehozásához.'
+      using errcode = '28000';
+  end if;
+
+  if nullif(trim(p_name), '') is null
+     or nullif(trim(p_slug), '') is null
+     or nullif(trim(p_city), '') is null then
+    raise exception 'A hely neve, azonosítója és városa kötelező.';
+  end if;
+
+  insert into public.venues (name, slug, city, address, description)
+  values (trim(p_name), lower(trim(p_slug)), trim(p_city), p_address, p_description)
+  returning id into v_venue_id;
+
+  insert into public.venue_members (venue_id, user_id, role)
+  values (v_venue_id, auth.uid(), 'owner');
+
+  return v_venue_id;
+end;
+$;
+
 -- Atomic instant-booking endpoint. The exclusion constraint is the final
 -- concurrency guard; the resource row lock also serializes booking attempts
 -- for the same unit and produces predictable errors for the app.
@@ -273,7 +312,7 @@ begin
     raise exception 'Csak jövőbeli időpont foglalható.';
   end if;
 
-  select r.*, v.status
+  select r, v.status
     into v_resource, v_venue_status
   from public.resources r
   join public.venues v on v.id = r.venue_id
@@ -470,7 +509,7 @@ create policy "Booking participants can read booking events"
       ))
   );
 
-revoke all on function public.create_booking(uuid, timestamptz, timestamptz, integer, text) from public;
+revoke all on function public.create_venue(text, text, text, text, text) from public;\ngrant execute on function public.create_venue(text, text, text, text, text) to authenticated;\n\nrevoke all on function public.create_booking(uuid, timestamptz, timestamptz, integer, text) from public;
 grant execute on function public.create_booking(uuid, timestamptz, timestamptz, integer, text) to authenticated;
 
 grant select on public.activities, public.venues, public.venue_activities,
