@@ -509,7 +509,10 @@ create policy "Booking participants can read booking events"
       ))
   );
 
-revoke all on function public.create_venue(text, text, text, text, text) from public;\ngrant execute on function public.create_venue(text, text, text, text, text) to authenticated;\n\nrevoke all on function public.create_booking(uuid, timestamptz, timestamptz, integer, text) from public;
+revoke all on function public.create_venue(text, text, text, text, text) from public;
+grant execute on function public.create_venue(text, text, text, text, text) to authenticated;
+
+revoke all on function public.create_booking(uuid, timestamptz, timestamptz, integer, text) from public;
 grant execute on function public.create_booking(uuid, timestamptz, timestamptz, integer, text) to authenticated;
 
 grant select on public.activities, public.venues, public.venue_activities,
