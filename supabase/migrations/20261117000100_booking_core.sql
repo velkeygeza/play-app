@@ -517,6 +517,7 @@ grant execute on function public.create_booking(uuid, timestamptz, timestamptz, 
 
 grant select on public.activities, public.venues, public.venue_activities,
   public.resources, public.venue_opening_hours to anon, authenticated;
+grant update on public.venues to authenticated;
 grant select, update on public.profiles to authenticated;
 grant select on public.venue_members, public.bookings, public.booking_events to authenticated;
 grant update on public.bookings to authenticated;
