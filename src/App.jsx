@@ -1,6 +1,3 @@
-import { useAuth } from "./hooks/useAuth";
-import { AuthGate } from "./components/AuthGate";
-
 import React, { useState, useMemo } from "react";
 
 // ===== DESIGN SYSTEM =====
